@@ -15,17 +15,6 @@
 # For Nessus template use ensure the following options are set UDP SCAN=ON, SNMP SCAN=ON, SYN SCAN=ON,  PING HOST=OFF, TCP SCAN=OFF - the script will enable safe checks and consider unscanned ports as closed - double check before scanning.
 
 
-#####################################################################################
-# Released as open source by NCC Group Plc - http://www.nccgroup.com/
-
-# Developed by Daniel Compton, daniel dot compton at nccgroup dot com
-
-# https://github.com/nccgroup/vlan-hopping
-
-#Released under AGPL see LICENSE for more information
-
-######################################################################################
-
 
 VERSION="2.0"
 
@@ -487,7 +476,7 @@ echo ""
 # check for Nessus template
 
 POLICYNAME=$(grep -l -i "</NessusClientData_v2>" --exclude=\*.sh --exclude=\*.exe --exclude=\*.bin ../* 2>/dev/null) #default Nessus template - save just one template with any extension - must be within script directory
-ls "$POLICYNAME" 2>&1 >/dev/null
+ls "$POLICYNAME" 2>/dev/null
 if [ $? = 0 ]
 	then
 	cat "$POLICYNAME" |grep -i "screenshot" 2>&1 >/dev/null
