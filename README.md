@@ -55,4 +55,5 @@ Screen Shot
 Change Log
 =======================
 
+Version 2.0 - New look. Now works with Kali and Nessus 4 & 5 Policies. New percent progress for live host discovery.
 Version 1.8 - Official release.
