@@ -479,7 +479,7 @@ POLICYNAME=$(grep -l -i "</NessusClientData_v2>" --exclude=\*.sh --exclude=\*.ex
 ls "$POLICYNAME" 2>/dev/null
 if [ $? = 0 ]
 	then
-	cat "$POLICYNAME" |grep -i "screenshot" 2>&1 >/dev/null
+	cat "$POLICYNAME" |grep -i "screenshot" >/dev/null 2>&1
 		if [ $? = 0 ]
 			then
 				echo ""
