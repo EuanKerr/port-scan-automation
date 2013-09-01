@@ -3,17 +3,15 @@ LazyMap - Auto NMAP Scanning Script
 
 Automate NMAP scans and custom Nessus polices.
 
-Released as open source by NCC Group Plc - http://www.nccgroup.com/
+Developed by Daniel Compton
 
-Developed by Daniel Compton, daniel dot compton at nccgroup dot com
-
-https://github.com/nccgroup/port-scan-automation
+https://github.com/commonexploits/port-scan-automation.git
 
 Released under AGPL see LICENSE for more information
 
 Installing  
 =======================
-    git clone https://github.com/nccgroup/port-scan-automation.git
+    git clone https://github.com/commonexploits/port-scan-automation.git
 
 
 How To Use	
