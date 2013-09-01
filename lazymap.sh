@@ -476,7 +476,7 @@ echo ""
 # check for Nessus template
 
 POLICYNAME=$(grep -l -i "</NessusClientData_v2>" --exclude=\*.sh --exclude=\*.exe --exclude=\*.bin ../* 2>/dev/null) #default Nessus template - save just one template with any extension - must be within script directory
-ls "$POLICYNAME" 2>/dev/null
+ls "$POLICYNAME" >/dev/null 2>&1
 if [ $? = 0 ]
 	then
 	cat "$POLICYNAME" |grep -i "screenshot" >/dev/null 2>&1
