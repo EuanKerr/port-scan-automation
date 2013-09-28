@@ -31,9 +31,9 @@ Features
 * Logs all start/stop times, live hosts, hosts down, unique ports.
 * Auto creates a custom Nessus policy with only the discovered ports, must faster to scan. *
 
-* * Read the script header carefully, in order for the auto Nessus policy creater you must first save a default template to the same directory as the script. The script will detect the default template and create you a unique Nessus policy after each scan for just the unique ports. Then simply import the policy into Nessus and scan just the live devices that the  script found. This will save a massive amount of time scanning, plus will give you more accurate findings.
+* Read the script header carefully, in order for the auto Nessus policy creater you must first save a default template to the same directory as the script. The script will detect the default template and create you a unique Nessus policy after each scan for just the unique ports. Then simply import the policy into Nessus and scan just the live devices that the  script found. This will save a massive amount of time scanning, plus will give you more accurate findings.
 
-* * By Default it will scan a full TCP, Quick UDP, Common ports and a Safe Script scan. You can turn these on and off in the header. 
+* By Default it will scan a full TCP, Quick UDP, Common ports and a Safe Script scan. You can turn these on and off in the header. 
 
 Requirements   
 =======================
@@ -53,10 +53,10 @@ Screen Shot
 Change Log
 =======================
 
-Version 2.2 - Added auto exclude own source address from scans. Also ability to feed exclusion list of IPs or ranges
+* Version 2.2 - Added auto exclude own source address from scans. Also ability to feed exclusion list of IPs or ranges
 
-Version 2.1 - Few minor bug fixes and resolved issue if input list contains numbers in the file name
+* Version 2.1 - Few minor bug fixes and resolved issue if input list contains numbers in the file name
 
-Version 2.0 - New look. Now works with Kali and Nessus 4 & 5 Policies. New percent progress for live host discovery.
+* Version 2.0 - New look. Now works with Kali and Nessus 4 & 5 Policies. New percent progress for live host discovery.
 
-Version 1.8 - Official release.
+* Version 1.8 - Official release.
