@@ -16,7 +16,7 @@
 
 
 
-VERSION="2.0"
+VERSION="2.2"
 
 #####################################################################################################################
 
@@ -118,7 +118,7 @@ echo ""
 ifconfig $INT |grep "inet addr:" |grep "192.168.186.*" >/dev/null 2>&1
 if [ $? = 0 ]
 	then
-		echo -e "\e[1;31m It seems you are running in VMWARE with a NAT network connection." 
+		echo -e "\e[1;31m It seems you are running in VMWARE with a NAT network connection."
 		echo ""
 		echo -e "\e[1;31m If you intend to scan from a static IP you should set the NIC to BRIDGED mode, script will continue but CTRL C to quit and change if required."
 		echo ""
@@ -158,7 +158,7 @@ if [ $IPANSWER = yes ]
 		echo ""
 		clear
 		echo ""
-		echo -e "\e[01;32m[+]\e[00m The default gateway has been added below" 
+		echo -e "\e[01;32m[+]\e[00m The default gateway has been added below"
 		echo ""
 		ROUTEGW=`route |grep -i default`
 		echo -e "\e[1;33m$ROUTEGW\e[00m"
@@ -173,40 +173,79 @@ echo -e "\e[01;31m[?]\e[00m Enter the reference or client name for the scan"
 echo -e "\e[1;31m------------------------------------------------------\e[00m"
 read REF
 echo ""
-echo -e "\e[1;31m-----------------------------------------------------------------------\e[00m"
-echo -e "\e[01;31m[?]\e[00m Enter the IP address/Range or the exact path to an input file"
-echo -e "\e[1;31m-----------------------------------------------------------------------\e[00m"
+echo -e "\e[1;31m-----------------------------------------------------------------------------------------------\e[00m"
+echo -e "\e[01;31m[?]\e[00m Enter the IP address/Range or the exact path to an input file (can tab complete)"
+echo -e "\e[1;31m-----------------------------------------------------------------------------------------------\e[00m"
 read -e RANGE
 mkdir "$REF" >/dev/null 2>&1
 cd "$REF"
 echo "$REF" > REF
 echo "$INT" > INT
 echo ""
-echo -e "\e[1;31m-----------------------------------------------------------------------------------------------------------\e[00m"
-echo -e "\e[01;31m[?]\e[00m Do you want to exclude any IPs from the scan i.e your Windows host? - Enter yes or no and press ENTER"
-echo -e "\e[1;31m-----------------------------------------------------------------------------------------------------------\e[00m"
+echo -e "\e[1;31m-------------------------------------------------------------------------------------------------\e[00m"
+echo -e "\e[01;31m[?]\e[00m Do you want to exclude any additional IPs from the scan i.e other testers or VMs?"
+echo -e "\e[1;31m-------------------------------------------------------------------------------------------------\e[00m"
+echo -e "\e[01;32m[-]\e[00m Note - I will auto exclude your source IP address of \e[1;32m"$LOCAL"\e[00m from the scan"
+echo ""
+echo -e "\e[1;31m----------------------------------------------\e[00m"
+echo -e "\e[01;31m[?]\e[00m Enter yes or no and press ENTER"
+echo -e "\e[1;31m----------------------------------------------\e[00m"
+echo ""
 read EXCLUDEANS
 
 if [ $EXCLUDEANS = yes ]
 		then
 			echo ""
-			echo -e "\e[1;31m------------------------------------------------------------------------------------------\e[00m"
-			echo -e "\e[01;31m[?]\e[00m Enter the IP addresses to exclude i.e 192.168.1.1, 192.168.1.1-10 - normal nmap format"
-			echo -e "\e[1;31m------------------------------------------------------------------------------------------\e[00m"
-			read EXCLUDEDIPS
-			EXCLUDE="--exclude "$EXCLUDEDIPS""
+			echo -e "\e[1;31m-------------------------------------------------------------------------------------------------------------------------------------\e[00m"
+			echo -e "\e[01;31m[?]\e[00m Enter the IP addresses to exclude i.e 192.168.1.1, 192.168.1.1-10 - or the exact path to an input file (can tab complete)"
+			echo -e "\e[1;31m-------------------------------------------------------------------------------------------------------------------------------------\e[00m"
+			read -e EXCLUDEDIPS
+			#check if manual input or a file
+			echo $EXCLUDEDIPS |egrep '[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}.' >/dev/null 2>&1
+
+			if [ $? = 0 ]
+				then
+					echo ""
+					echo -e "\e[01;32m[-]\e[00m I will exclude the following additional IP addresses from the scan"
+					echo ""
+					echo $EXCLUDEDIPS |tee excludeiplist
+					echo "$LOCAL" >> excludeiplist
+					echo ""
+				else
+					echo ""
+					echo -e "\e[01;32m[-]\e[00m You entered a file as the exclusion input, I will just check I can read it ok"
+					echo ""
+					cat $EXCLUDEDIPS >/dev/null 2>&1
+						if [ $? = 1 ]
+								then
+									echo ""
+									echo -e "\e[01;31m[!]\e[00m Sorry I can't read that file, check the path and try again!"
+									echo ""
+									exit 1
+								else
+									echo ""
+									echo -e "\e[01;32m[+]\e[00m I can read the exclusion file ok, I will exclude the following additional IP addresses from the scan"
+									echo ""
+									cat $EXCLUDEDIPS |tee excludeiplist
+									echo ""
+									echo "$LOCAL" >> excludeiplist
+						fi
+			fi
+			EXIP=$(cat excludeiplist)
+			EXCLUDE="--excludefile excludeiplist"
 			echo "$EXCLUDE" > excludetmp
-			echo -e "\e[01;33m[-]\e[00m The following IP addresses were asked to be excluded from the scan = "$EXCLUDEDIPS"" > "$REF"_nmap_hosts_excluded.txt
+			echo "$LOCAL" >> excludetmp
+			echo -e "\e[01;33m[-]\e[00m The following IP addresses were asked to be excluded from the scan = "$EXIP"" > "$REF"_nmap_hosts_excluded.txt
 		else
-			EXCLUDE=""
-			echo "$EXCLUDE" > excludetmp
+			EXCLUDE="--exclude "$LOCAL""
+			echo "$LOCAL" > excludeiplist
 		fi
 
-		echo $RANGE |grep "[0-9]" >/dev/null 2>&1
+echo $RANGE |egrep '[[:digit:]]{1,3}\.[[:digit:]]{1,3}\.[[:digit:]]{1,3}.' >/dev/null 2>&1
 if [ $? = 0 ]
 	then
 		echo ""
-		echo -e "\e[01;32m[-]\e[00m  You entered a manual IP or range, scan will now start"
+		echo -e "\e[01;32m[-]\e[00m You entered a manual IP or range, scan will now start"
 		echo ""
 		echo -e "\e[01;32m[-]\e[00m $REF - Finding Live hosts via $INT, please wait"
 		echo ""
@@ -216,15 +255,15 @@ if [ $? = 0 ]
 		do
 		PERCENT=`cat "$REF"_nmap_PingScan.xml 2>/dev/null |grep "percent" |cut -d '"' -f 6 |tail -1 |cut -d "." -f 1`
 		STATUS=`cat "$REF"_nmap_PingScan.xml 2>/dev/null |grep -i "exit" |cut -d '"' -f 10`
-		
-        progressbar && spin
+ 
+  progressbar && spin
 
         # do work
         sleep 0.2
-		
+
 	done
 endspin
-		
+
 		cat "$REF"_nmap_PingScan.gnmap 2>/dev/null | grep "Up" |awk '{print $2}' > "$REF"_hosts_Up.txt
 		cat "$REF"_nmap_PingScan.gnmap 2>/dev/null | grep  "Down" |awk '{print $2}' > "$REF"_hosts_Down.txt
 
@@ -254,15 +293,15 @@ echo ""
 		do
 		PERCENT=`cat "$REF"_nmap_PingScan.xml 2>/dev/null |grep "percent" |cut -d '"' -f 6 |tail -1 |cut -d "." -f 1`
 		STATUS=`cat "$REF"_nmap_PingScan.xml 2>/dev/null |grep -i "exit" |cut -d '"' -f 10`
-		
+
         progressbar && spin
 
         # do work
         sleep 0.2
-		
+
 	done
 endspin
-		
+
 		cat "$REF"_nmap_PingScan.gnmap 2>/dev/null | grep "Up" |awk '{print $2}' > "$REF"_hosts_Up.txt
 		cat "$REF"_nmap_PingScan.gnmap 2>/dev/null | grep  "Down" |awk '{print $2}' > "$REF"_hosts_Down.txt
 
@@ -277,7 +316,7 @@ HOSTSUPCHK=$(cat "$REF"_hosts_Up.txt)
 if [ -z "$HOSTSUPCHK" ]
 	then
 		echo ""
-		echo -e "\e[01;31m[!]\e[00m It seems there are no live hosts present in the range specified..I will run a Arp-scan to double check"
+		echo -e "\e[01;31m[!]\e[00m It seems there are no live hosts present in the range specified..I will run an arp-scan to double check"
 		echo ""
 		sleep 4
 		arp-scan --interface $INT --file "$REF"_hosts_Down.txt > "$REF"_arp_scan.txt 2>&1
@@ -286,20 +325,20 @@ if [ -z "$HOSTSUPCHK" ]
 				then
 					echo -e "\e[01;32m[!]\e[00m No live hosts were found using arp-scan - check IP range/source address and try again. It may be there are no live hosts."
 					echo ""
-					rm "INT" 2>&1 >/dev/null
-					rm "REF" 2>&1 >/dev/null
-					rm "excludetmp" 2>&1 >/dev/null
+					rm "INT" 2>/dev/null
+					rm "REF" 2>/dev/null
+					rm "excludetmp" 2>/dev/null
 					touch "$REF"_no_live_hosts.txt
 					exit 1
 			else
 					arp-scan --interface $INT --file "$REF"_hosts_Down.txt > "$REF"_arp_scan.txt 2>&1
 					ARPUP=$(cat "$REF"_arp_scan.txt)
 					echo ""
-					echo -e "\e[01;33m[-]\e[00m Nmap didn't find any live hosts, but apr-scan found the following hosts within the range...script will exit. Try adding these to the host list to scan."
+					echo -e "\e[01;33m[-]\e[00m Nmap didn't find any live hosts, but arp-scan found the following hosts within the range...script will exit. Try adding these to the host list to scan."
 					echo ""
-					rm "INT" 2>&1 >/dev/null
-					rm "REF" 2>&1 >/dev/null
-					rm "excludetmp" 2>&1 >/dev/null
+					rm "INT" 2>/dev/null
+					rm "REF" 2>/dev/null
+					rm "excludetmp" 2>/dev/null
 					echo -e "\e[00;32m$ARPUP\e[00m"
 					echo ""
 					exit 1
@@ -317,7 +356,7 @@ read ENTER
 if [ $COMMONTCP = "on" ]
 then
 # Scanning Common TCP Ports - CTRL - C if slow to switch to T5 fast
-gnome-terminal --title="$REF - Common TCP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludetmp);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Common TCP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait.." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Common TCP scan files.." ; sleep 3 ; rm "$REF"_nmap_CommonPorts* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Common TCP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sS $EXCLUDE -PN -T5 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Common TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Common TCP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sS $EXCLUDE -PN -T4 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Common TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
+gnome-terminal --title="$REF - Common TCP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Common TCP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait.." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Common TCP scan files.." ; sleep 3 ; rm "$REF"_nmap_CommonPorts* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Common TCP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sS $EXCLUDE -PN -T5 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Common TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Common TCP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sS $EXCLUDE -PN -T4 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Common TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Common TCP scan as turned off in options"
@@ -326,7 +365,7 @@ fi
 if [ $SCRIPT = "on" ]
 then
 #Script Scan (not CTRL C option)
-gnome-terminal --title="$REF - Script Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludetmp);nmap -e $INT -PN $EXCLUDE -A -vvv -oA "$REF"_nmap_ScriptScan -iL "$REF"_hosts_Up.txt -n; echo ""; echo -e "\e[01;32m[+]\e[00m $REF - Script Scan Complete, Press ENTER to Exit";echo "";read ENTERKEY;'
+gnome-terminal --title="$REF - Script Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);nmap -e $INT -PN $EXCLUDE -A -vvv -oA "$REF"_nmap_ScriptScan -iL "$REF"_hosts_Up.txt -n; echo ""; echo -e "\e[01;32m[+]\e[00m $REF - Script Scan Complete, Press ENTER to Exit";echo "";read ENTERKEY;'
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Script Scan as turned off in options"
@@ -335,7 +374,7 @@ fi
 if [ $QUICKUDP = "on" ]
 then
 #Scanning Quick UDP (1,000) Ports - CTRL - C if slow to switch to T5 fast
-gnome-terminal --title="$REF - Quick UDP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludetmp);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Quick UDP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Quick UDP scan files." ; sleep 3 ; rm "$REF"_nmap_QuickUDP* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Quick UDP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sU $EXCLUDE -Pn -T5 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Quick UDP Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Quick UDP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sU $EXCLUDE -Pn -T4 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Quick UDP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
+gnome-terminal --title="$REF - Quick UDP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Quick UDP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Quick UDP scan files." ; sleep 3 ; rm "$REF"_nmap_QuickUDP* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Quick UDP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sU $EXCLUDE -Pn -T5 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Quick UDP Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Quick UDP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sU $EXCLUDE -Pn -T4 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Quick UDP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Quick UDP Scan as turned off in options"
@@ -344,7 +383,7 @@ fi
 if [ $FULLTCP = "on" ]
 then
 # Scanning Full TCP Ports - CTRL - C if slow to switch to T5 fast
-gnome-terminal --title="$REF - Full TCP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludetmp);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Full TCP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Full TCP scan files.." ; sleep 3 ; rm "$REF"_nmap_FullPorts* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Full TCP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sS $EXCLUDE -PN -T5 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Full TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Full TCP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sS $EXCLUDE -PN -T4 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Full TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
+gnome-terminal --title="$REF - Full TCP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Full TCP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Full TCP scan files.." ; sleep 3 ; rm "$REF"_nmap_FullPorts* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Full TCP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sS $EXCLUDE -PN -T5 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Full TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Full TCP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sS $EXCLUDE -PN -T4 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Full TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Full TCP as turned off in options"
@@ -352,9 +391,8 @@ fi
 
 #clear temp files
 sleep 5
-rm "INT" 2>&1 >/dev/null
-rm "REF" 2>&1 >/dev/null
-rm "excludetmp" 2>&1 >/dev/null
+rm "INT" 2>/dev/null
+rm "REF" 2>/dev/null
 
 clear
 echo ""
@@ -465,7 +503,8 @@ if [ $? = 0 ]
 		echo -e "\e[1;32m--------------------------------------------------------------------------------\e[00m"
 		echo -e "\e[01;32m[+]\e[00m The following hosts were requested to be excluded from scans for $REF"
 		echo -e "\e[1;32m---------------------------------------------------------------------------------\e[00m"
-		echo -e "\e[00;32m$EXCLUDEDIPS\e[00m"
+		EXFIN=$(cat excludeiplist)
+		echo -e "\e[00;32m$EXFIN\e[00m"
 		echo ""
 	else
 	echo ""
@@ -473,6 +512,8 @@ fi
 echo -e "\e[01;33m[-]\e[00m Output files have all been saved to the \e[00;32m"$REF"\e[00m directory"
 echo ""
 
+rm "excludeiplist" 2>/dev/null
+rm  "excludetmp" 2>/dev/null
 # check for Nessus template
 
 POLICYNAME=$(grep -l -i "</NessusClientData_v2>" --exclude=\*.sh --exclude=\*.exe --exclude=\*.bin ../* 2>/dev/null) #default Nessus template - save just one template with any extension - must be within script directory
