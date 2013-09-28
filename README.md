@@ -53,6 +53,10 @@ Screen Shot
 Change Log
 =======================
 
+Version 2.2 - Added auto exclude own source address from scans. Also ability to feed exclusion list of IPs or ranges
+
+Version 2.1 - Few minor bug fixes and resolved issue if input list contains numbers in the file name
+
 Version 2.0 - New look. Now works with Kali and Nessus 4 & 5 Policies. New percent progress for live host discovery.
 
 Version 1.8 - Official release.
