@@ -16,7 +16,7 @@
 
 
 
-VERSION="2.2"
+VERSION="2.3"
 
 #####################################################################################################################
 
@@ -479,7 +479,7 @@ echo ""
 echo -e "\e[1;32m------------------------------------------------------------------\e[00m"
 echo -e "\e[01;32m[+]\e[00m Unique TCP and UDP Port Summary - $REF"
 echo -e "\e[1;32m------------------------------------------------------------------\e[00m"
-UNIQUE=$(cat *.xml |grep -i 'open"' |grep -i "portid=" |cut -d '"' -f 4,5,6| grep -o '[0-9]*' |sort --unique |paste -s -d, 2>&1)
+UNIQUE=$(cat *.xml |grep -i 'open"' |grep -i "portid=" |cut -d '"' -f 4,5,6| grep -o '[0-9]*' |sort --unique | sort -k1n |paste -s -d, 2>&1)
 echo $UNIQUE >"$REF"_nmap_unique_ports.txt
 if [ -z "$UNIQUE" ]
 then
@@ -560,7 +560,7 @@ if [ "$NESSUSVER" = 5 ]
 		echo ""
 		echo -e "\e[01;33m[-]\e[00m Remember to export and update the Nessus template file regularly after updating Nessus to ensure the latest modules are included - ensure the correct options are enabled"
 		echo ""
-		
+
 elif [ "$NESSUSVER" = 4 ]
 	then
 	## Nessus 4 Custom Policy
@@ -588,7 +588,7 @@ elif [ "$NESSUSVER" = 4 ]
 		echo -e "\e[01;33m[-]\e[00m Remember to export and update the Nessus template file regularly after updating Nessus to ensure the latest modules are included - ensure the correct options are enabled"
 		echo ""
 	fi
-		
+
 	else
 	echo ""
 fi
