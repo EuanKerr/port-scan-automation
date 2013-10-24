@@ -4,7 +4,7 @@
 # www.commonexploits.com
 # contact@commexploits.com
 # Twitter = @commonexploits
-# Updated 01/09/2013
+# Updated 24/10/2013
 # Tested on Bactrack 5 & Kali Nessus version 4 & 5
 
 # Important info - read first!
