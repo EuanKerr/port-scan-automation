@@ -4,19 +4,19 @@
 # www.commonexploits.com
 # contact@commexploits.com
 # Twitter = @commonexploits
-# Updated 24/10/2013
-# Tested on Bactrack 5 & Kali Nessus version 4 & 5
+# Updated 04/05/2016
+# Tested on Kali2 Nessus version 4 & 5
 
 # Important info - read first!
 
-# Nmap Lazy Script - For Internal Inf Testing. tested only on BT5 gnome. Scans should launch 4x terminals at once, may only work on BT5!
+# Nmap Lazy Script - For Internal Inf Testing.
 #
 # For the auto creation of a custom Nessus policy - export and place one policy file within the same directory as the script with any filename or extension - it will find it use this as a template.
 # For Nessus template use ensure the following options are set UDP SCAN=ON, SNMP SCAN=ON, SYN SCAN=ON,  PING HOST=OFF, TCP SCAN=OFF - the script will enable safe checks and consider unscanned ports as closed - double check before scanning.
 
 
 
-VERSION="2.3"
+VERSION="2.5"
 
 #####################################################################################################################
 
@@ -90,7 +90,7 @@ fi
 echo ""
 echo -e "\e[01;32m[-]\e[00m The following Interfaces are available"
 echo ""
-	ifconfig | grep -o "eth.*" |cut -d " " -f1
+	ip link show | grep 'UP\|DOWN' | cut -d ":" -f 2 |grep -v -i lo | sed -e 's/^[ \t]*//'
 echo ""
 echo -e "\e[1;31m--------------------------------------------------\e[00m"
 echo -e "\e[01;31m[?]\e[00m Enter the interface to scan from as the source"
@@ -102,18 +102,19 @@ ifconfig | grep -i -w $INT >/dev/null
 if [ $? = 1 ]
 	then
 		echo ""
-		echo -e "\e[1;31m Sorry the interface you entered does not exist! - check and try again."
+		echo -e "\e[1;31m Sorry the interface you entered does not exist or is not up! - check and try again."
 		echo ""
 		exit 1
 else
 echo ""
 fi
-LOCAL=$(ifconfig $INT |grep "inet addr:" |cut -d ":" -f 2 |awk '{ print $1 }')
-MASK=$(ifconfig |grep -i $LOCAL | grep -i mask: |cut -d ":" -f 4)
+LOCAL=$(ifconfig $INT |grep "inet " |cut -d "" -f 3 | awk '{print $2}')
+MASK=$(ifconfig |grep $LOCAL | awk '{print $4}')
+CIDR=$(ip addr show $INT |grep inet |grep -v inet6 |cut -d "/" -f 2 | awk '{print $1}')
 clear
 echo ""
 echo ""
-echo -e "\e[01;32m[-]\e[00m Your source IP address is set as follows \e[1;32m"$LOCAL"\e[00m with the mask of \e[1;32m"$MASK"\e[00m"
+echo -e "\e[01;32m[-]\e[00m Your source IP address is set as follows \e[1;32m"$LOCAL"\e[00m with the mask of \e[1;32m"$MASK"(/"$CIDR")\e[00m"
 echo ""
 ifconfig $INT |grep "inet addr:" |grep "192.168.186.*" >/dev/null 2>&1
 if [ $? = 0 ]
@@ -138,10 +139,11 @@ if [ $IPANSWER = yes ]
 		echo -e "\e[1;31m-----------------------------------------------------------------------------------------------------------\e[00m"
 		read SETIPINT
 		ifconfig $INT $SETIPINT up
-		SETLOCAL=`ifconfig $INT |grep "inet addr:" |cut -d ":" -f 2 |awk '{ print $1 }'`
-		SETMASK=`ifconfig |grep -i $SETLOCAL | grep -i mask: |cut -d ":" -f 4`
+		SETLOCAL=`ifconfig $INT |grep "inet " |cut -d "" -f 3 | awk '{print $2}'`
+		SETMASK=`ifconfig |grep $SETLOCAL | awk '{print $4}'`
+		SETCIDR=`ip addr show $INT |grep inet |grep -v inet6 |cut -d "/" -f 2 | awk '{print $1}'`
 		echo ""
-		echo -e "Your source IP address is set as follows \e[1;33m"$SETLOCAL"\e[00m with the mask of \e[1;33m"$SETMASK"\e[00m"
+		echo -e "Your source IP address is set as follows \e[1;33m"$SETLOCAL"\e[00m with the mask of \e[1;33m"$SETMASK"(/"$SETCIDR")\e[00m"
 		echo ""
 		echo -e "\e[1;31m-------------------------------------------------------------------------------------------\e[00m"
 		echo -e "\e[01;31m[?]\e[00m Would you like to change your default gateway..? - Enter yes or no and press ENTER"
@@ -249,7 +251,7 @@ if [ $? = 0 ]
 		echo ""
 		echo -e "\e[01;32m[-]\e[00m $REF - Finding Live hosts via $INT, please wait"
 		echo ""
-		nmap -e $INT -sP $EXCLUDE -n --stats-every 4 -PE -PM -PS21,22,23,25,26,53,80,81,110,111,113,135,139,143,179,199,443,445,465,514,548,554,587,993,995,1025,1026,1433,1720,1723,2000,2001,3306,3389,5060,5900,6001,8000,8080,8443,8888,10000,32768,49152 -PA21,80,443,13306 -vvv -oA "$REF"_nmap_PingScan $RANGE >/dev/null &
+		nmap -e $INT -sn $EXCLUDE -n --stats-every 4 -PE -PM -PS21,22,23,25,26,53,80,81,110,111,113,135,139,143,179,199,443,445,465,514,548,554,587,993,995,1025,1026,1433,1720,1723,2000,2001,3306,3389,5060,5900,6001,8000,8080,8443,8888,10000,32768,49152 -PA21,80,443,13306 -vvv -oA "$REF"_nmap_PingScan $RANGE >/dev/null &
 		sleep 5
 		until [ "$STATUS" = "success" ]
 		do
@@ -287,7 +289,7 @@ echo ""
 			echo ""
 			echo -e "\e[01;32m[-]\e[00m $REF - Finding Live hosts via $INT, please wait...\e[00m"
 			echo ""
-			nmap -e $INT -sP $EXCLUDE -n --stats-every 4 -PE -PM -PS21,22,23,25,26,53,80,81,110,111,113,135,139,143,179,199,443,445,465,514,548,554,587,993,995,1025,1026,1433,1720,1723,2000,2001,3306,3389,5060,5900,6001,8000,8080,8443,8888,10000,32768,49152 -PA21,80,443,13306 -vvv -oA "$REF"_nmap_PingScan -iL $RANGE >/dev/null &
+			nmap -e $INT -sn $EXCLUDE -n --stats-every 4 -PE -PM -PS21,22,23,25,26,53,80,81,110,111,113,135,139,143,179,199,443,445,465,514,548,554,587,993,995,1025,1026,1433,1720,1723,2000,2001,3306,3389,5060,5900,6001,8000,8080,8443,8888,10000,32768,49152 -PA21,80,443,13306 -vvv -oA "$REF"_nmap_PingScan -iL $RANGE >/dev/null &
 			sleep 5
 		until [ "$STATUS" = "success" ]
 		do
@@ -356,7 +358,7 @@ read ENTER
 if [ $COMMONTCP = "on" ]
 then
 # Scanning Common TCP Ports - CTRL - C if slow to switch to T5 fast
-gnome-terminal --title="$REF - Common TCP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Common TCP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait.." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Common TCP scan files.." ; sleep 3 ; rm "$REF"_nmap_CommonPorts* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Common TCP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sS $EXCLUDE -PN -T5 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Common TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Common TCP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sS $EXCLUDE -PN -T4 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Common TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
+gnome-terminal -title="$REF - Common TCP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Common TCP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait.." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Common TCP scan files.." ; sleep 3 ; rm "$REF"_nmap_CommonPorts* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Common TCP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sS $EXCLUDE -Pn -T5 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Common TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Common TCP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sS $EXCLUDE -Pn -T4 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n 2>/dev/null ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Common TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Common TCP scan as turned off in options"
@@ -365,7 +367,7 @@ fi
 if [ $SCRIPT = "on" ]
 then
 #Script Scan (not CTRL C option)
-gnome-terminal --title="$REF - Script Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);nmap -e $INT -PN $EXCLUDE -A -vvv -oA "$REF"_nmap_ScriptScan -iL "$REF"_hosts_Up.txt -n; echo ""; echo -e "\e[01;32m[+]\e[00m $REF - Script Scan Complete, Press ENTER to Exit";echo "";read ENTERKEY;'
+gnome-terminal --title="$REF - Script Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);nmap -e $INT -Pn $EXCLUDE -A -vvv -oA "$REF"_nmap_ScriptScan -iL "$REF"_hosts_Up.txt -n 2>/dev/null; echo ""; echo -e "\e[01;32m[+]\e[00m $REF - Script Scan Complete, Press ENTER to Exit";echo "";read ENTERKEY;'
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Script Scan as turned off in options"
@@ -374,7 +376,7 @@ fi
 if [ $QUICKUDP = "on" ]
 then
 #Scanning Quick UDP (1,000) Ports - CTRL - C if slow to switch to T5 fast
-gnome-terminal --title="$REF - Quick UDP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Quick UDP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Quick UDP scan files." ; sleep 3 ; rm "$REF"_nmap_QuickUDP* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Quick UDP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sU $EXCLUDE -Pn -T5 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Quick UDP Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Quick UDP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sU $EXCLUDE -Pn -T4 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Quick UDP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
+gnome-terminal --title="$REF - Quick UDP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Quick UDP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Quick UDP scan files." ; sleep 3 ; rm "$REF"_nmap_QuickUDP* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Quick UDP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sU $EXCLUDE -Pn -T5 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n 2>/dev/null ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Quick UDP Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Quick UDP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sU $EXCLUDE -Pn -T4 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n 2>/dev/null ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Quick UDP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Quick UDP Scan as turned off in options"
@@ -383,7 +385,7 @@ fi
 if [ $FULLTCP = "on" ]
 then
 # Scanning Full TCP Ports - CTRL - C if slow to switch to T5 fast
-gnome-terminal --title="$REF - Full TCP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Full TCP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Full TCP scan files.." ; sleep 3 ; rm "$REF"_nmap_FullPorts* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Full TCP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sS $EXCLUDE -PN -T5 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Full TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Full TCP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sS $EXCLUDE -PN -T4 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Full TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
+gnome-terminal -x bash -c 'PS1="\[\e]0;Wibble\a\]\u@\h:\w\$" REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Full TCP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Full TCP scan files.." ; sleep 3 ; rm "$REF"_nmap_FullPorts* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Full TCP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sS $EXCLUDE -Pn -T5 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Full TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Full TCP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sS $EXCLUDE -Pn -T4 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n 2>/dev/null ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Full TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Full TCP as turned off in options"
