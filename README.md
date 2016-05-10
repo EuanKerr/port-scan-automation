@@ -52,6 +52,7 @@ Screen Shot
 
 Change Log
 =======================
+* Version 2.5 - Improved interface detection for new O/S versions. Replaced legacy Nmap commands
 
 * Version 2.2 - Added auto exclude own source address from scans. Also ability to feed exclusion list of IPs or ranges
 
