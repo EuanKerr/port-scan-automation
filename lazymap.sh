@@ -16,7 +16,7 @@
 
 
 
-VERSION="2.5"
+VERSION="2.6"
 
 #####################################################################################################################
 
@@ -31,24 +31,6 @@ COMMONTCP="off" # to disable/enable common TCP scan set to "off" / "on"
 
 ######################################################################################################################
 # Script Starts
-
-sp="▁ ▃ ▄ ▅ ▆ ▇ █ ▇ ▆ ▅ ▄ ▃"
-
-progressbar () {
-	 printf "\e[00;34m\r%3d%% complete (per subnet)  " $PERCENT
-}
-spin() {
-   printf "\b${sp:sc++:15} "
-   ((sc==${#sp})) && sc=0
-}
-endspin() {
-   printf "\r%s\n" "$@"
-}
-
-sc=0
-
-
-clear
 echo -e "\e[00;32m#############################################################\e[00m"
 echo ""
 echo "***   Lazymap - Internal Auto Nmap Script Version $VERSION  ***"
@@ -64,21 +46,6 @@ echo -e "\e[01;32m[-]\e[00m All output including hosts up, down, unique ports an
 echo ""
 echo -e "\e[01;32m[-]\e[00m Press Enter to continue"
 echo ""
-read ENTERKEY
-clear
-#Check for multiple Nessus policy files
-NESSUSPOLICYNO=$(grep -l -i "<NessusClientData_v2>" --exclude=\*.sh * 2>/dev/null |wc -l)
-if [ $NESSUSPOLICYNO -gt 1 ]
-	then
-		echo ""
-		echo -e "\e[01;31m[!]\e[00m I found more than 1 .nessus policy file template within this directory. Please correct this and run again!\e[00m"
-		echo ""
-		DOTNESSUS=$(grep -l -i "<NessusClientData_v2>" --exclude=\*.sh* 2>/dev/null)
-		echo -e "\e[00;31m$DOTNESSUS\e[00m"
-		echo ""
-		exit 1
-fi
-
 # Check if root
 if [[ $EUID -ne 0 ]]; then
         echo ""
@@ -111,7 +78,6 @@ fi
 LOCAL=$(ifconfig $INT |grep "inet " |cut -d "" -f 3 | awk '{print $2}')
 MASK=$(ifconfig |grep $LOCAL | awk '{print $4}')
 CIDR=$(ip addr show $INT |grep inet |grep -v inet6 |cut -d "/" -f 2 | awk '{print $1}')
-clear
 echo ""
 echo ""
 echo -e "\e[01;32m[-]\e[00m Your source IP address is set as follows \e[1;32m"$LOCAL"\e[00m with the mask of \e[1;32m"$MASK"(/"$CIDR")\e[00m"
@@ -158,7 +124,6 @@ if [ $IPANSWER = yes ]
 		read SETGATEWAY
 		route add default gw $SETGATEWAY
 		echo ""
-		clear
 		echo ""
 		echo -e "\e[01;32m[+]\e[00m The default gateway has been added below"
 		echo ""
@@ -251,20 +216,7 @@ if [ $? = 0 ]
 		echo ""
 		echo -e "\e[01;32m[-]\e[00m $REF - Finding Live hosts via $INT, please wait"
 		echo ""
-		nmap -e $INT -sn $EXCLUDE -n --stats-every 4 -PE -PM -PS21,22,23,25,26,53,80,81,110,111,113,135,139,143,179,199,443,445,465,514,548,554,587,993,995,1025,1026,1433,1720,1723,2000,2001,3306,3389,5060,5900,6001,8000,8080,8443,8888,10000,32768,49152 -PA21,80,443,13306 -vvv -oA "$REF"_nmap_PingScan $RANGE >/dev/null &
-		sleep 5
-		until [ "$STATUS" = "success" ]
-		do
-		PERCENT=`cat "$REF"_nmap_PingScan.xml 2>/dev/null |grep "percent" |cut -d '"' -f 6 |tail -1 |cut -d "." -f 1`
-		STATUS=`cat "$REF"_nmap_PingScan.xml 2>/dev/null |grep -i "exit" |cut -d '"' -f 10`
- 
-  progressbar && spin
-
-        # do work
-        sleep 0.2
-
-	done
-endspin
+		nmap -e $INT -sn $EXCLUDE -n --stats-every 4 -PE -PM -PS21,22,23,25,26,53,80,81,110,111,113,135,139,143,179,199,443,445,465,514,548,554,587,993,995,1025,1026,1433,1720,1723,2000,2001,3306,3389,5060,5900,6001,8000,8080,8443,8888,10000,32768,49152 -PA21,80,443,13306 -vvv -oA "$REF"_nmap_PingScan $RANGE 
 
 		cat "$REF"_nmap_PingScan.gnmap 2>/dev/null | grep "Up" |awk '{print $2}' > "$REF"_hosts_Up.txt
 		cat "$REF"_nmap_PingScan.gnmap 2>/dev/null | grep  "Down" |awk '{print $2}' > "$REF"_hosts_Down.txt
@@ -289,27 +241,11 @@ echo ""
 			echo ""
 			echo -e "\e[01;32m[-]\e[00m $REF - Finding Live hosts via $INT, please wait...\e[00m"
 			echo ""
-			nmap -e $INT -sn $EXCLUDE -n --stats-every 4 -PE -PM -PS21,22,23,25,26,53,80,81,110,111,113,135,139,143,179,199,443,445,465,514,548,554,587,993,995,1025,1026,1433,1720,1723,2000,2001,3306,3389,5060,5900,6001,8000,8080,8443,8888,10000,32768,49152 -PA21,80,443,13306 -vvv -oA "$REF"_nmap_PingScan -iL $RANGE >/dev/null &
-			sleep 5
-		until [ "$STATUS" = "success" ]
-		do
-		PERCENT=`cat "$REF"_nmap_PingScan.xml 2>/dev/null |grep "percent" |cut -d '"' -f 6 |tail -1 |cut -d "." -f 1`
-		STATUS=`cat "$REF"_nmap_PingScan.xml 2>/dev/null |grep -i "exit" |cut -d '"' -f 10`
-
-        progressbar && spin
-
-        # do work
-        sleep 0.2
-
-	done
-endspin
+			nmap -e $INT -sn $EXCLUDE -n --stats-every 4 -PE -PM -PS21,22,23,25,26,53,80,81,110,111,113,135,139,143,179,199,443,445,465,514,548,554,587,993,995,1025,1026,1433,1720,1723,2000,2001,3306,3389,5060,5900,6001,8000,8080,8443,8888,10000,32768,49152 -PA21,80,443,13306 -vvv -oA "$REF"_nmap_PingScan -iL $RANGE 
 
 		cat "$REF"_nmap_PingScan.gnmap 2>/dev/null | grep "Up" |awk '{print $2}' > "$REF"_hosts_Up.txt
 		cat "$REF"_nmap_PingScan.gnmap 2>/dev/null | grep  "Down" |awk '{print $2}' > "$REF"_hosts_Down.txt
 
-echo ""
-echo -e "\e[01;32m[+]\e[00m Scan is 100% complete"
-echo ""
 		fi
 fi
 echo ""
@@ -353,30 +289,20 @@ HOSTSUP=$(cat "$REF"_hosts_Up.txt)
 echo -e "\e[00;32m$HOSTSUP\e[00m"
 echo ""
 echo -e "\e[01;32m[-]\e[00m Press Enter to scan the live hosts, or CTRL C to cancel"
-read ENTER
 
 if [ $COMMONTCP = "on" ]
 then
 # Scanning Common TCP Ports - CTRL - C if slow to switch to T5 fast
-gnome-terminal -title="$REF - Common TCP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Common TCP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait.." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Common TCP scan files.." ; sleep 3 ; rm "$REF"_nmap_CommonPorts* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Common TCP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sS $EXCLUDE -Pn -T5 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Common TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Common TCP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sS $EXCLUDE -Pn -T4 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n 2>/dev/null ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Common TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
+nmap -e $INT -sS $EXCLUDE -Pn -T4 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Common TCP scan as turned off in options"
 fi
 
-if [ $SCRIPT = "on" ]
-then
-#Script Scan (not CTRL C option)
-gnome-terminal --title="$REF - Script Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);nmap -e $INT -Pn $EXCLUDE -A -vvv -oA "$REF"_nmap_ScriptScan -iL "$REF"_hosts_Up.txt -n 2>/dev/null; echo ""; echo -e "\e[01;32m[+]\e[00m $REF - Script Scan Complete, Press ENTER to Exit";echo "";read ENTERKEY;'
-else
-echo ""
-echo -e "\e[01;33m[-]\e[00m Skipping Script Scan as turned off in options"
-fi
-
 if [ $QUICKUDP = "on" ]
 then
 #Scanning Quick UDP (1,000) Ports - CTRL - C if slow to switch to T5 fast
-gnome-terminal --title="$REF - Quick UDP Port Scan - $INT" -x bash -c 'REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Quick UDP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Quick UDP scan files." ; sleep 3 ; rm "$REF"_nmap_QuickUDP* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Quick UDP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sU $EXCLUDE -Pn -T5 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n 2>/dev/null ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Quick UDP Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Quick UDP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sU $EXCLUDE -Pn -T4 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n 2>/dev/null ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Quick UDP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
+nmap -e $INT -sU $EXCLUDE -Pn -T4 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Quick UDP Scan as turned off in options"
@@ -385,10 +311,26 @@ fi
 if [ $FULLTCP = "on" ]
 then
 # Scanning Full TCP Ports - CTRL - C if slow to switch to T5 fast
-gnome-terminal -x bash -c 'PS1="\[\e]0;Wibble\a\]\u@\h:\w\$" REF=$(cat REF);INT=$(cat INT);EXCLUDE=$(cat excludeiplist);trap control_c SIGINT; control_c() { clear ; echo "" ; echo "" ; echo -e "\e[01;33m[-]\e[00m You interupted the Full TCP Scan for "$REF" - it was probably too slow..? I will run it again with T5..please wait." ; echo "" ; sleep 3 ; echo -e "\e[01;33m[-]\e[00m Cleaning up T4 Full TCP scan files.." ; sleep 3 ; rm "$REF"_nmap_FullPorts* >/dev/null ; clear ; echo "" ; echo -e "\e[01;32m[-]\e[00m Now Starting Full TCP scan with T5 option..."$REF"" ; echo "" ; nmap -e $INT -sS $EXCLUDE -Pn -T5 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Full TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ; exit $? ; } ; echo "" ; echo -e "\e[01;32m[-]\e[00m Starting Full TCP scan for $REF"; echo "" ;  echo -e "\e[01;33m[-]\e[00m If the scan runs too slow, just press CTRL C to switch to a T5 speed scan" ; echo "" ; sleep 3 ; nmap -e $INT -sS $EXCLUDE -Pn -T4 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n 2>/dev/null ; echo "" ; echo -e "\e[01;32m[+]\e[00m $REF - Full TCP Port Scan Complete, Press ENTER to Exit" ; echo "" ; read ENTERKEY ;'
+nmap -e $INT -sS $EXCLUDE -Pn -T4 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Full TCP as turned off in options"
+fi
+
+if [ $SCRIPT = "on" ]
+then
+    #Script Scan
+    UNIQUE=$(cat *.xml |grep -i 'open"' |grep -i "portid=" |cut -d '"' -f 4,5,6| grep -o '[0-9]*' |sort --unique | sort -k1n |paste -s -d, 2>&1)
+    if [ -z "$UNIQUE" ]
+    then
+        echo -e "\e[01;31m[!]\e[00m No open ports were found on any scans"
+    else
+        $nmap -e $INT -Pn $EXCLUDE -p $UNIQUE -A -vvv -oA "$REF"_nmap_ScriptScan -iL "$REF"_hosts_Up.txt -n
+        echo ""
+    fi
+else
+        echo ""
+        echo -e "\e[01;33m[-]\e[00m Skipping Script Scan as turned off in options"
 fi
 
 #clear temp files
@@ -396,11 +338,8 @@ sleep 5
 rm "INT" 2>/dev/null
 rm "REF" 2>/dev/null
 
-clear
 echo ""
 echo -e "\e[01;32m[-]\e[00m Once all scans are complete, press ENTER on this window to list all unique ports found and continue - $REF"
-read ENTERKEY
-clear
 echo ""
 echo -e "\e[1;32m----------------------------------------------------------------------------------\e[00m"
 echo -e "\e[01;32m[+]\e[00m The following scan start/finish times were recorded for $REF"
@@ -516,82 +455,4 @@ echo ""
 
 rm "excludeiplist" 2>/dev/null
 rm  "excludetmp" 2>/dev/null
-# check for Nessus template
-
-POLICYNAME=$(grep -l -i "</NessusClientData_v2>" --exclude=\*.sh --exclude=\*.exe --exclude=\*.bin ../* 2>/dev/null) #default Nessus template - save just one template with any extension - must be within script directory
-ls "$POLICYNAME" >/dev/null 2>&1
-if [ $? = 0 ]
-	then
-	cat "$POLICYNAME" |grep -i "screenshot" >/dev/null 2>&1
-		if [ $? = 0 ]
-			then
-				echo ""
-				echo -e "\e[01;33m[-]\e[00m Nessus Version 5 Policy detected, I will output for this version"
-				echo ""
-				NESSUSVER="5"
-			else
-				echo ""
-				echo -e "\e[01;33m[-]\e[00m Nessus Version detected is older than Version 5, I will output a compatible version"
-				echo ""
-				NESSUSVER="4"
-		fi
-if [ "$NESSUSVER" = 5 ]
-	then
-## Nessus 5 Custom Policy
-	FINDPOLICY=$(cat $POLICYNAME |grep policyName) #find Nessus policy name
-	NEWPOLICY="<policyName>$REF</policyName>" #set Nessus policy name
-	NEWPORTS="<value>$UNIQUE</value>" #set Nessus policy unique tcp/udp ports
-	NEWCOMMENTS="<policy_comments>"$REF" Custom Scan of the following unique ports "$UNIQUE"</policy_comments>" #Add Nessus policy comments
-	ENABLESAFE="<value>yes</value>" #enable Nessus safe checks only - wont run DoS plugins
-	ENABLECLOSED="<value>yes</value>" #set Nessus consider unscanned ports closed - scans only unique ports
-	OFFSTOP="<value>no</value>" #set Nessus to disable stop scan on disconnect
-	# Create custom Nessus 5 Policy
-	cat $POLICYNAME | sed "s#$FINDPOLICY#$NEWPOLICY#" >"$REF"_nessus_policy.nessus
-	FINDPORTS=$(cat $POLICYNAME |awk '/port_range/{getline; print NR}') #find ports
-	FINDSAFE=$(cat $POLICYNAME | awk '/<name>safe_checks/{getline; print NR}') #find Nessus safe check value
-	FINDCLOSED=$(cat $POLICYNAME |awk '/unscanned_closed/{getline; print NR}') # find consider unclosed ports closed
-	FINDSTOP=$(cat $POLICYNAME |awk '/stop_scan_on_disconnect/{getline; print NR}') #find stop scan on disconnect
-	FINDCOMMENTS=$(cat $POLICYNAME |awk '/<policy_comments>tempcomment/{getline; print NR}') #find nessus comment value
-	sed -i "$FINDPORTS"i"$NEWPORTS" "$REF"_nessus_policy.nessus
-	sed -i "$FINDSAFE"i"$ENABLESAFE" "$REF"_nessus_policy.nessus
-	sed -i "$FINDCLOSED"i"$ENABLECLOSED" "$REF"_nessus_policy.nessus
-	sed -i "$FINDSTOP"i"$OFFSTOP" "$REF"_nessus_policy.nessus
-	sed -i '/visibility/a<policy_comments>'"$NEWCOMMENTS"'</policy_comments>' "$REF"_nessus_policy.nessus
-	echo ""
-		echo -e "\e[01;32m[+]\e[00m I have created a custom policy Nessus 5 policy file named \e[01;32m"$REF"_nessus_policy.nessus\e[00m - Import this into Nessus for a faster custom scan just on the above live hosts"
-		echo ""
-		echo -e "\e[01;33m[-]\e[00m Remember to export and update the Nessus template file regularly after updating Nessus to ensure the latest modules are included - ensure the correct options are enabled"
-		echo ""
-
-elif [ "$NESSUSVER" = 4 ]
-	then
-	## Nessus 4 Custom Policy
-	FINDPOLICY=$(cat $POLICYNAME |grep policyName) #find Nessus policy name
-	NEWPOLICY="<Policy><policyName>$REF</policyName>" #set Nessus policy name
-	NEWPORTS="<value>$UNIQUE</value>" #set Nessus policy unique tcp/udp ports
-	FINDCOMMENTS=$(cat $POLICYNAME |grep policyComments) #find Nessus comment value
-	NEWCOMMENTS="<policyComments>"$REF" Custom Scan of the following unique ports "$UNIQUE"</policyComments>" #Add Nessus policy comments
-	ENABLESAFE="<value>yes</value>" #enable Nessus safe checks only - wont run DoS plugins
-	ENABLECLOSED="<value>yes</value>" #set Nessus consider unscanned ports closed - scans only unique ports
-	OFFSTOP="<value>no</value>" #set Nessus to disable stop scan on disconnect
-	# Create custom Nessus Policy
-	cat $POLICYNAME | sed "s#$FINDPOLICY#$NEWPOLICY#" |sed "s#$FINDCOMMENTS#$NEWCOMMENTS#"  >"$REF"_nessus_policy.nessus
-	FINDPORTS=$(cat $POLICYNAME |awk '/port_range/{getline; print NR}') #find ports
-	FINDSAFE=$(cat $POLICYNAME | awk '/safe_checks/{getline; print NR}') #find Nessus safe check value
-	FINDCLOSED=$(cat $POLICYNAME |awk '/unscanned_closed/{getline; print NR}') # find consider unclosed ports closed
-	FINDSTOP=$(cat $POLICYNAME |awk '/stop_scan_on_disconnect/{getline; print NR}') #find stop scan on disconnect
-	sed -i "$FINDPORTS"i"$NEWPORTS" "$REF"_nessus_policy.nessus
-	sed -i "$FINDSAFE"i"$ENABLESAFE" "$REF"_nessus_policy.nessus
-	sed -i "$FINDCLOSED"i"$ENABLECLOSED" "$REF"_nessus_policy.nessus
-	sed -i "$FINDSTOP"i"$OFFSTOP" "$REF"_nessus_policy.nessus
-		echo ""
-		echo -e "\e[01;32m[+]\e[00m I have created a custom policy Nessus 4 policy file named \e[01;32m"$REF"_nessus_policy.nessus\e[00m - Import this into Nessus for a faster custom scan just on the above live hosts"
-		echo ""
-		echo -e "\e[01;33m[-]\e[00m Remember to export and update the Nessus template file regularly after updating Nessus to ensure the latest modules are included - ensure the correct options are enabled"
-		echo ""
-	fi
-
-	else
-	echo ""
-fi
 exit 0
