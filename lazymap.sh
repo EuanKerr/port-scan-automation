@@ -4,19 +4,12 @@
 # www.commonexploits.com
 # contact@commexploits.com
 # Twitter = @commonexploits
-# Updated 04/05/2016
-# Tested on Kali2 Nessus version 4 & 5
 
 # Important info - read first!
 
 # Nmap Lazy Script - For Internal Inf Testing.
-#
-# For the auto creation of a custom Nessus policy - export and place one policy file within the same directory as the script with any filename or extension - it will find it use this as a template.
-# For Nessus template use ensure the following options are set UDP SCAN=ON, SNMP SCAN=ON, SYN SCAN=ON,  PING HOST=OFF, TCP SCAN=OFF - the script will enable safe checks and consider unscanned ports as closed - double check before scanning.
 
-
-
-VERSION="2.6"
+VERSION="2.7"
 
 #####################################################################################################################
 
@@ -36,11 +29,6 @@ echo ""
 echo "***   Lazymap - Internal Auto Nmap Script Version $VERSION  ***"
 echo ""
 echo -e "\e[00;32m#############################################################\e[00m"
-echo ""
-echo ""
-echo -e "\e[01;32m[-]\e[00m If any of the scans are too slow, press Ctrl c to auto switch to a T5 scans"
-echo ""
-echo -e "\e[01;32m[-]\e[00m It can auto create you a custom Nessus policy based on only the unique open ports for faster scanning - see script header for details"
 echo ""
 echo -e "\e[01;32m[-]\e[00m All output including hosts up, down, unique ports and an audit of each scan start stop times can be found in the output directory."
 echo ""
@@ -221,10 +209,6 @@ if [ $? = 0 ]
 		cat "$REF"_nmap_PingScan.gnmap 2>/dev/null | grep "Up" |awk '{print $2}' > "$REF"_hosts_Up.txt
 		cat "$REF"_nmap_PingScan.gnmap 2>/dev/null | grep  "Down" |awk '{print $2}' > "$REF"_hosts_Down.txt
 
-echo ""
-echo -e "\e[01;32m[+]\e[00m Scan is 100% complete"
-echo ""
-
 	else
 		echo ""
 		echo -e "\e[01;32m[-]\e[00m You entered a file as the input, I will just check I can read it ok"
@@ -287,13 +271,11 @@ echo -e "\e[01;32m[+]\e[00m The following $HOSTSCOUNT hosts were found up for $R
 echo -e "\e[1;32m-----------------------------------------------------------------\e[00m"
 HOSTSUP=$(cat "$REF"_hosts_Up.txt)
 echo -e "\e[00;32m$HOSTSUP\e[00m"
-echo ""
-echo -e "\e[01;32m[-]\e[00m Press Enter to scan the live hosts, or CTRL C to cancel"
 
 if [ $COMMONTCP = "on" ]
 then
-# Scanning Common TCP Ports - CTRL - C if slow to switch to T5 fast
-nmap -e $INT -sS $EXCLUDE -Pn -T4 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n
+# Scanning Common TCP Ports
+nmap -e $INT -sS $EXCLUDE -Pn -T4 -sV --version-intensity 1 -vvv -oA "$REF"_nmap_CommonPorts -iL "$REF"_hosts_Up.txt -n --min-rate 500
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Common TCP scan as turned off in options"
@@ -301,8 +283,8 @@ fi
 
 if [ $QUICKUDP = "on" ]
 then
-#Scanning Quick UDP (1,000) Ports - CTRL - C if slow to switch to T5 fast
-nmap -e $INT -sU $EXCLUDE -Pn -T4 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n
+#Scanning Quick UDP (1,000) Ports
+nmap -e $INT -sU $EXCLUDE -Pn -T4 -vvv -oA "$REF"_nmap_QuickUDP -iL "$REF"_hosts_Up.txt -n --min-rate 500
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Quick UDP Scan as turned off in options"
@@ -310,8 +292,8 @@ fi
 
 if [ $FULLTCP = "on" ]
 then
-# Scanning Full TCP Ports - CTRL - C if slow to switch to T5 fast
-nmap -e $INT -sS $EXCLUDE -Pn -T4 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n
+# Scanning Full TCP Ports 
+nmap -e $INT -sS $EXCLUDE -Pn -T4 -p- -sV --version-intensity 1 -vvv -oA "$REF"_nmap_FullPorts -iL "$REF"_hosts_Up.txt -n --min-rate 500
 else
 echo ""
 echo -e "\e[01;33m[-]\e[00m Skipping Full TCP as turned off in options"
@@ -325,7 +307,7 @@ then
     then
         echo -e "\e[01;31m[!]\e[00m No open ports were found on any scans"
     else
-        $nmap -e $INT -Pn $EXCLUDE -p $UNIQUE -A -vvv -oA "$REF"_nmap_ScriptScan -iL "$REF"_hosts_Up.txt -n
+        $nmap -e $INT -Pn $EXCLUDE -p $UNIQUE -A -vvv -oA "$REF"_nmap_ScriptScan -iL "$REF"_hosts_Up.txt -n --min-rate 250
         echo ""
     fi
 else
