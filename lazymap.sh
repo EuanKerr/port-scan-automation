@@ -307,7 +307,7 @@ then
     then
         echo -e "\e[01;31m[!]\e[00m No open ports were found on any scans"
     else
-        $nmap -e $INT -Pn $EXCLUDE -p $UNIQUE -A -vvv -oA "$REF"_nmap_ScriptScan -iL "$REF"_hosts_Up.txt -n --min-rate 250
+        nmap -e $INT -Pn $EXCLUDE -p $UNIQUE -A -vvv -oA "$REF"_nmap_ScriptScan -iL "$REF"_hosts_Up.txt -n --min-rate 250
         echo ""
     fi
 else
